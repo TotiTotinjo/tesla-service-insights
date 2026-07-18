@@ -3,6 +3,8 @@
   "name": "tesla-service-insights",
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-06-01",
+  "workers_dev": true,
+  "preview_urls": true,
   "compatibility_flags": [
     "nodejs_compat",
     "global_fetch_strictly_public"
@@ -26,5 +28,10 @@
   },
   "observability": {
     "enabled": true
-  }
+  },
+  // Custom domains (Cloudflare will provision SSL + DNS if zone is on this account)
+  "routes": [
+    { "pattern": "roinsights.org", "custom_domain": true },
+    { "pattern": "www.roinsights.org", "custom_domain": true }
+  ]
 }

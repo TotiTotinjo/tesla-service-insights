@@ -78,7 +78,8 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Live beta
 
-- **App:** https://tesla-service-insights.4kfr7tyzsh.workers.dev  
+- **App:** https://roinsights.org (also `www.roinsights.org`)  
+- **Workers URL:** https://tesla-service-insights.4kfr7tyzsh.workers.dev  
 - **Source:** https://github.com/TotiTotinjo/tesla-service-insights  
 
 ## Deploy (Cloudflare Workers via OpenNext)
