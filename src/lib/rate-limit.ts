@@ -1,35 +1,20 @@
-import { promises as fs } from "fs";
-import path from "path";
-import { createHash, randomUUID } from "crypto";
+import { createHash } from "crypto";
+import { dataFile, readJsonFile, writeJsonFile } from "./fs-store";
 
 /**
  * Early-beta upload / Grok cost caps.
- * Defaults are intentionally tight so strangers cannot burn your API budget.
- *
- * Override via env:
- *   BETA_MAX_ANALYZES_PER_IP_PER_DAY   (default 3)
- *   BETA_MAX_ANALYZES_GLOBAL_PER_DAY   (default 40)
- *   BETA_MAX_PUBLISHES_PER_IP_PER_DAY  (default 5)
- *   BETA_RATE_LIMIT_DISABLED=true      (local override only — never in prod)
+ * Defaults intentionally tight so strangers cannot burn your API budget.
  */
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const FILE = path.join(DATA_DIR, "rate-limits.json");
+const FILE = dataFile("rate-limits.json");
 
 export type RateLimitKind = "analyze" | "publish";
 
 type DayBucket = {
-  /** UTC date YYYY-MM-DD */
   day: string;
   globalAnalyzes: number;
   globalPublishes: number;
-  byIp: Record<
-    string,
-    {
-      analyzes: number;
-      publishes: number;
-    }
-  >;
+  byIp: Record<string, { analyzes: number; publishes: number }>;
 };
 
 function todayUtc(): string {
@@ -58,21 +43,30 @@ export function hashIp(ip: string): string {
 
 async function readBucket(): Promise<DayBucket> {
   const day = todayUtc();
-  try {
-    const raw = await fs.readFile(FILE, "utf8");
-    const data = JSON.parse(raw) as DayBucket;
-    if (data.day === day) return data;
-  } catch {
-    /* reset */
-  }
+  const data = await readJsonFile<DayBucket>(FILE, {
+    day,
+    globalAnalyzes: 0,
+    globalPublishes: 0,
+    byIp: {},
+  });
+  if (data.day === day) return data;
   return { day, globalAnalyzes: 0, globalPublishes: 0, byIp: {} };
 }
 
-async function writeBucket(data: DayBucket): Promise<void> {
-  await fs.mkdir(DATA_DIR, { recursive: true });
-  const tmp = `${FILE}.${randomUUID()}.tmp`;
-  await fs.writeFile(tmp, JSON.stringify(data, null, 2), "utf8");
-  await fs.rename(tmp, FILE);
+function remainingFrom(
+  data: DayBucket,
+  ipHash: string,
+  cfg: ReturnType<typeof getRateLimitConfig>
+) {
+  const ip = data.byIp[ipHash] || { analyzes: 0, publishes: 0 };
+  return {
+    ipAnalyzes: Math.max(0, cfg.maxAnalyzesPerIpPerDay - ip.analyzes),
+    globalAnalyzes: Math.max(
+      0,
+      cfg.maxAnalyzesGlobalPerDay - data.globalAnalyzes
+    ),
+    ipPublishes: Math.max(0, cfg.maxPublishesPerIpPerDay - ip.publishes),
+  };
 }
 
 export type RateLimitResult =
@@ -98,27 +92,9 @@ export type RateLimitResult =
       };
     };
 
-function remainingFrom(
-  data: DayBucket,
-  ipHash: string,
-  cfg: ReturnType<typeof getRateLimitConfig>
-) {
-  const ip = data.byIp[ipHash] || { analyzes: 0, publishes: 0 };
-  return {
-    ipAnalyzes: Math.max(0, cfg.maxAnalyzesPerIpPerDay - ip.analyzes),
-    globalAnalyzes: Math.max(
-      0,
-      cfg.maxAnalyzesGlobalPerDay - data.globalAnalyzes
-    ),
-    ipPublishes: Math.max(0, cfg.maxPublishesPerIpPerDay - ip.publishes),
-  };
-}
-
-/** Check + optionally consume a quota unit. */
 export async function checkAndConsumeRateLimit(opts: {
   ip: string;
   kind: RateLimitKind;
-  /** If false, only check without incrementing */
   consume?: boolean;
 }): Promise<RateLimitResult> {
   const cfg = getRateLimitConfig();
@@ -128,11 +104,7 @@ export async function checkAndConsumeRateLimit(opts: {
   if (cfg.disabled) {
     return {
       allowed: true,
-      remaining: {
-        ipAnalyzes: 999,
-        globalAnalyzes: 999,
-        ipPublishes: 999,
-      },
+      remaining: { ipAnalyzes: 999, globalAnalyzes: 999, ipPublishes: 999 },
       limits: cfg,
     };
   }
@@ -168,7 +140,7 @@ export async function checkAndConsumeRateLimit(opts: {
     if (consume) {
       ip.analyzes += 1;
       data.globalAnalyzes += 1;
-      await writeBucket(data);
+      await writeJsonFile(FILE, data);
     }
   } else {
     if (ip.publishes >= cfg.maxPublishesPerIpPerDay) {
@@ -184,7 +156,7 @@ export async function checkAndConsumeRateLimit(opts: {
     if (consume) {
       ip.publishes += 1;
       data.globalPublishes += 1;
-      await writeBucket(data);
+      await writeJsonFile(FILE, data);
     }
   }
 

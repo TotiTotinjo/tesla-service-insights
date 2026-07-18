@@ -1,14 +1,11 @@
-import { promises as fs } from "fs";
-import path from "path";
-import { createHash, randomUUID } from "crypto";
+import { createHash } from "crypto";
+import { dataFile, readJsonFile, writeJsonFile } from "./fs-store";
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const VOTES_FILE = path.join(DATA_DIR, "votes.json");
+const VOTES_FILE = dataFile("votes.json");
 
 export type BulletinVoteRecord = {
   issueKey: string;
   count: number;
-  /** Hashed voter keys (IP+UA day bucket) to limit multi-votes */
   voters: string[];
   updatedAt: string;
 };
@@ -16,22 +13,6 @@ export type BulletinVoteRecord = {
 type VotesFile = {
   byIssue: Record<string, BulletinVoteRecord>;
 };
-
-async function readVotes(): Promise<VotesFile> {
-  try {
-    const raw = await fs.readFile(VOTES_FILE, "utf8");
-    return JSON.parse(raw) as VotesFile;
-  } catch {
-    return { byIssue: {} };
-  }
-}
-
-async function writeVotes(data: VotesFile) {
-  await fs.mkdir(DATA_DIR, { recursive: true });
-  const tmp = `${VOTES_FILE}.${randomUUID()}.tmp`;
-  await fs.writeFile(tmp, JSON.stringify(data, null, 2), "utf8");
-  await fs.rename(tmp, VOTES_FILE);
-}
 
 export function voterFingerprint(ip: string, ua: string): string {
   const day = new Date().toISOString().slice(0, 10);
@@ -44,7 +25,7 @@ export function voterFingerprint(ip: string, ua: string): string {
 export async function getVoteCounts(
   issueKeys?: string[]
 ): Promise<Record<string, number>> {
-  const data = await readVotes();
+  const data = await readJsonFile<VotesFile>(VOTES_FILE, { byIssue: {} });
   const out: Record<string, number> = {};
   const keys = issueKeys || Object.keys(data.byIssue);
   for (const k of keys) {
@@ -57,7 +38,7 @@ export async function castBulletinVote(opts: {
   issueKey: string;
   voterKey: string;
 }): Promise<{ count: number; alreadyVoted: boolean }> {
-  const data = await readVotes();
+  const data = await readJsonFile<VotesFile>(VOTES_FILE, { byIssue: {} });
   const key = opts.issueKey;
   let rec = data.byIssue[key];
   if (!rec) {
@@ -74,10 +55,9 @@ export async function castBulletinVote(opts: {
     return { count: rec.count, alreadyVoted: true };
   }
 
-  // Cap stored voter fingerprints
   rec.voters = [...rec.voters.slice(-500), opts.voterKey];
   rec.count += 1;
   rec.updatedAt = new Date().toISOString();
-  await writeVotes(data);
+  await writeJsonFile(VOTES_FILE, data);
   return { count: rec.count, alreadyVoted: false };
 }

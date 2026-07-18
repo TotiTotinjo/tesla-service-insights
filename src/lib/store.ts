@@ -1,6 +1,5 @@
-import { promises as fs } from "fs";
-import path from "path";
 import { randomUUID } from "crypto";
+import { dataFile, readJsonFile, writeJsonFile } from "./fs-store";
 import { buildIssueGroups, enrichVisit } from "./issue-group";
 import { getVoteCounts } from "./votes";
 import type {
@@ -10,42 +9,15 @@ import type {
   ServiceInsight,
 } from "./types";
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const INSIGHTS_FILE = path.join(DATA_DIR, "insights.json");
-const PATTERNS_FILE = path.join(DATA_DIR, "patterns.json");
+const INSIGHTS_FILE = dataFile("insights.json");
+const PATTERNS_FILE = dataFile("patterns.json");
 
-async function ensureDataDir() {
-  await fs.mkdir(DATA_DIR, { recursive: true });
-}
-
-async function readJson<T>(file: string, fallback: T): Promise<T> {
-  try {
-    const raw = await fs.readFile(file, "utf8");
-    return JSON.parse(raw) as T;
-  } catch {
-    return fallback;
-  }
-}
-
-async function ensureInsightsSeeded(): Promise<ServiceInsight[]> {
-  try {
-    const raw = await fs.readFile(INSIGHTS_FILE, "utf8");
-    return JSON.parse(raw) as ServiceInsight[];
-  } catch {
-    await writeJson(INSIGHTS_FILE, []);
-    return [];
-  }
-}
-
-async function writeJson(file: string, data: unknown) {
-  await ensureDataDir();
-  const tmp = `${file}.${randomUUID()}.tmp`;
-  await fs.writeFile(tmp, JSON.stringify(data, null, 2), "utf8");
-  await fs.rename(tmp, file);
+async function ensureInsights(): Promise<ServiceInsight[]> {
+  return readJsonFile<ServiceInsight[]>(INSIGHTS_FILE, []);
 }
 
 export async function listInsights(): Promise<ServiceInsight[]> {
-  const items = await ensureInsightsSeeded();
+  const items = await ensureInsights();
   return items.sort(
     (a, b) => +new Date(b.createdAt) - +new Date(a.createdAt)
   );
@@ -58,10 +30,8 @@ export async function getInsight(id: string): Promise<ServiceInsight | null> {
 
 export async function listIssueGroups(): Promise<IssueGroup[]> {
   const items = await listInsights();
-  const votes = await getVoteCounts(items.map((i) => i.issueKey || "").filter(Boolean));
-  // Also need votes for aggregated keys that might differ — load all
   const allVotes = await getVoteCounts();
-  return buildIssueGroups(items, { ...votes, ...allVotes });
+  return buildIssueGroups(items, allVotes);
 }
 
 export async function getIssueGroup(
@@ -71,7 +41,6 @@ export async function getIssueGroup(
   return groups.find((g) => g.issueKey === issueKey) || null;
 }
 
-/** Find all insights from a prior upload of the same PDF / text (batch dedupe). */
 export async function findInsightsByHashes(opts: {
   pdfHash?: string;
   contentHash?: string;
@@ -135,18 +104,17 @@ function softDedupeKey(i: {
 export async function saveInsight(
   data: Omit<ServiceInsight, "id" | "createdAt">
 ): Promise<ServiceInsight> {
-  const items = await ensureInsightsSeeded();
+  const items = await ensureInsights();
   const insight: ServiceInsight = {
     ...data,
     id: randomUUID(),
     createdAt: new Date().toISOString(),
   };
   items.push(insight);
-  await writeJson(INSIGHTS_FILE, items);
+  await writeJsonFile(INSIGHTS_FILE, items);
   return insight;
 }
 
-/** Save multiple visits from one upload as separate insights. */
 export async function saveVisitsFromUpload(opts: {
   visits: ExtractedVisit[];
   pdfHash: string;
@@ -154,7 +122,7 @@ export async function saveVisitsFromUpload(opts: {
   sourcePdfCount: number;
   pageCount: number;
 }): Promise<ServiceInsight[]> {
-  const items = await ensureInsightsSeeded();
+  const items = await ensureInsights();
   const batchId = randomUUID();
   const ownerKey = opts.contentHash || opts.pdfHash;
   const saved: ServiceInsight[] = [];
@@ -189,7 +157,7 @@ export async function saveVisitsFromUpload(opts: {
     saved.push(insight);
   }
 
-  await writeJson(INSIGHTS_FILE, items);
+  await writeJsonFile(INSIGHTS_FILE, items);
   return saved;
 }
 
@@ -231,7 +199,7 @@ export async function searchInsights(opts: {
 }
 
 export async function listPatterns(): Promise<PatternCluster[]> {
-  return readJson<PatternCluster[]>(PATTERNS_FILE, []);
+  return readJsonFile<PatternCluster[]>(PATTERNS_FILE, []);
 }
 
 export async function savePatterns(
@@ -242,7 +210,7 @@ export async function savePatterns(
     id: randomUUID(),
     updatedAt: new Date().toISOString(),
   }));
-  await writeJson(PATTERNS_FILE, saved);
+  await writeJsonFile(PATTERNS_FILE, saved);
   return saved;
 }
 
