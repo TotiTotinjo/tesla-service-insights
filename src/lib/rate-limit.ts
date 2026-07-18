@@ -30,9 +30,9 @@ function numEnv(name: string, fallback: number): number {
 
 export function getRateLimitConfig() {
   return {
-    maxAnalyzesPerIpPerDay: numEnv("BETA_MAX_ANALYZES_PER_IP_PER_DAY", 3),
-    maxAnalyzesGlobalPerDay: numEnv("BETA_MAX_ANALYZES_GLOBAL_PER_DAY", 40),
-    maxPublishesPerIpPerDay: numEnv("BETA_MAX_PUBLISHES_PER_IP_PER_DAY", 5),
+    maxAnalyzesPerIpPerDay: numEnv("BETA_MAX_ANALYZES_PER_IP_PER_DAY", 2),
+    maxAnalyzesGlobalPerDay: numEnv("BETA_MAX_ANALYZES_GLOBAL_PER_DAY", 25),
+    maxPublishesPerIpPerDay: numEnv("BETA_MAX_PUBLISHES_PER_IP_PER_DAY", 3),
     disabled: process.env.BETA_RATE_LIMIT_DISABLED === "true",
   };
 }

@@ -20,12 +20,12 @@ To keep Grok API spend predictable:
 
 | Cap | Default |
 |-----|---------|
-| Analyses per IP / day (UTC) | **3** |
-| Analyses global / day (UTC) | **40** |
-| Publishes per IP / day | **5** |
+| Analyses per IP / day (UTC) | **2** |
+| Analyses global / day (UTC) | **25** |
+| Publishes per IP / day | **3** |
 
 Re-uploading the **same PDF** is free (dedupe, no Grok).  
-Configure via env vars in `.env.example`.
+Configure via env vars in `.env.example`. See [SECURITY.md](./SECURITY.md).
 
 ## Stack
 

@@ -22,9 +22,9 @@
   "vars": {
     "XAI_MODEL": "grok-4.5",
     "XAI_EXTRACT_MODEL": "grok-4-1-fast-non-reasoning",
-    "BETA_MAX_ANALYZES_PER_IP_PER_DAY": "2",
-    "BETA_MAX_ANALYZES_GLOBAL_PER_DAY": "25",
-    "BETA_MAX_PUBLISHES_PER_IP_PER_DAY": "3"
+    "BETA_MAX_ANALYZES_PER_IP_PER_DAY": "3",
+    "BETA_MAX_ANALYZES_GLOBAL_PER_DAY": "40",
+    "BETA_MAX_PUBLISHES_PER_IP_PER_DAY": "5"
   },
   "observability": {
     "enabled": true

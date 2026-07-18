@@ -328,9 +328,10 @@ export function UploadForm() {
 
         <div className="rounded-xl border border-sky-500/25 bg-sky-500/10 px-4 py-3 text-sm text-sky-100/90">
           <strong className="font-semibold text-sky-200">Early beta limits:</strong>{" "}
-          max <strong>3 analyses per person per day</strong> and{" "}
-          <strong>40 total analyses site-wide per day</strong> (UTC) so API costs
-          stay under control. Re-uploading the same PDF does not count.
+          max <strong>2 analyses per person per day</strong> and{" "}
+          <strong>25 total analyses site-wide per day</strong> (UTC) so API costs
+          stay under control. Re-uploading the same PDF does not count. Review
+          drafts carefully before publish — only you should decide what goes public.
         </div>
 
         <button
