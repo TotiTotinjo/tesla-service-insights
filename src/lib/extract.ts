@@ -194,10 +194,10 @@ export async function extractTextFromPdf(buffer: Buffer): Promise<string> {
   const data = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
   const pdf = await getDocumentProxy(data);
   const result = await extractText(pdf, { mergePages: true });
-  // unpdf may return string or string[] depending on version/options
-  if (typeof result.text === "string") return result.text;
-  if (Array.isArray(result.text)) return result.text.join("\n\n");
-  return String(result.text || "");
+  const text = result.text as string | string[] | undefined;
+  if (typeof text === "string") return text;
+  if (Array.isArray(text)) return text.join("\n\n");
+  return "";
 }
 
 export type PatternInput = {
