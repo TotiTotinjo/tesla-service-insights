@@ -1,7 +1,7 @@
 import { createHash } from "crypto";
 
 /** Exact PDF byte fingerprint — free duplicate check, no Grok. */
-export function hashPdfBuffer(buffer: Buffer): string {
+export function hashPdfBuffer(buffer: Buffer | Uint8Array): string {
   return createHash("sha256").update(buffer).digest("hex");
 }
 

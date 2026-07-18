@@ -1,11 +1,11 @@
 import { PDFDocument } from "pdf-lib";
 
 /**
- * Merge multiple PDF buffers into one document, preserving input order.
- * Originals stay in memory only — caller discards buffers after use.
+ * Merge multiple PDF byte arrays into one document, preserving input order.
+ * Uses Uint8Array (not Node Buffer) so this works on Cloudflare Workers.
  */
-export async function mergePdfBuffers(buffers: Buffer[]): Promise<{
-  buffer: Buffer;
+export async function mergePdfBuffers(buffers: Uint8Array[]): Promise<{
+  buffer: Uint8Array;
   pageCount: number;
 }> {
   if (buffers.length === 0) {
@@ -35,12 +35,15 @@ export async function mergePdfBuffers(buffers: Buffer[]): Promise<{
 
   const bytes = await merged.save();
   return {
-    buffer: Buffer.from(bytes),
+    buffer: new Uint8Array(bytes),
     pageCount,
   };
 }
 
-async function loadPdf(buffer: Buffer, index: number): Promise<PDFDocument> {
+async function loadPdf(
+  buffer: Uint8Array,
+  index: number
+): Promise<PDFDocument> {
   try {
     return await PDFDocument.load(buffer, {
       ignoreEncryption: false,

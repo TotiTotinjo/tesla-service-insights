@@ -184,14 +184,29 @@ export async function extractFromText(
   return visits[0];
 }
 
+/** Cloudflare/pdf.js reject Node Buffer — always pass a pure Uint8Array copy. */
+export function toPdfBytes(
+  input: Buffer | Uint8Array | ArrayBuffer | ArrayBufferView
+): Uint8Array {
+  if (input instanceof ArrayBuffer) {
+    return new Uint8Array(input.slice(0));
+  }
+  // Buffer is a Uint8Array subclass in Node; pdf.js still rejects it by name.
+  // Copy into a fresh Uint8Array so the prototype is exactly Uint8Array.
+  const view = input as ArrayBufferView;
+  return new Uint8Array(view.buffer.slice(view.byteOffset, view.byteOffset + view.byteLength));
+}
+
 /**
  * Extract text from a PDF buffer.
  * Uses `unpdf` (pdf.js serverless) so it works on Cloudflare Workers
  * without DOM APIs like DOMMatrix that break `pdf-parse`.
  */
-export async function extractTextFromPdf(buffer: Buffer): Promise<string> {
+export async function extractTextFromPdf(
+  buffer: Buffer | Uint8Array
+): Promise<string> {
   const { extractText, getDocumentProxy } = await import("unpdf");
-  const data = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+  const data = toPdfBytes(buffer);
   const pdf = await getDocumentProxy(data);
   const result = await extractText(pdf, { mergePages: true });
   const text = result.text as string | string[] | undefined;

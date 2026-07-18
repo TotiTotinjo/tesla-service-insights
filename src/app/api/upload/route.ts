@@ -1,7 +1,11 @@
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { hashInvoiceText, hashPdfBuffer } from "@/lib/content-hash";
-import { extractTextFromPdf, extractVisitsFromText } from "@/lib/extract";
+import {
+  extractTextFromPdf,
+  extractVisitsFromText,
+  toPdfBytes,
+} from "@/lib/extract";
 import { buildIssueGroups, enrichVisit } from "@/lib/issue-group";
 import { recordMetric } from "@/lib/metrics";
 import { mergePdfBuffers } from "@/lib/pdf-merge";
@@ -79,7 +83,7 @@ export async function POST(req: NextRequest) {
     }
 
     let totalSize = 0;
-    const buffers: Buffer[] = [];
+    const buffers: Uint8Array[] = [];
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
@@ -106,7 +110,8 @@ export async function POST(req: NextRequest) {
           { status: 400 }
         );
       }
-      buffers.push(Buffer.from(await file.arrayBuffer()));
+      // Pure Uint8Array — required by unpdf/pdf.js on Cloudflare Workers
+      buffers.push(toPdfBytes(await file.arrayBuffer()));
     }
 
     const { buffer: pdfBuffer, pageCount } = await mergePdfBuffers(buffers);
