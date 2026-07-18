@@ -76,6 +76,11 @@ Open [http://localhost:3000](http://localhost:3000).
 - Store only redacted technical notes + aggregate hashes  
 - See `/privacy` in the app  
 
+## Live beta
+
+- **App:** https://tesla-service-insights.4kfr7tyzsh.workers.dev  
+- **Source:** https://github.com/TotiTotinjo/tesla-service-insights  
+
 ## Deploy (Cloudflare Workers via OpenNext)
 
 Requires [Wrangler](https://developers.cloudflare.com/workers/wrangler/) login and an xAI API key as a Worker secret.
@@ -88,7 +93,9 @@ npx wrangler secret put XAI_API_KEY
 npm run deploy
 ```
 
-**Note:** The default file-based `data/` store is fine for a single long-lived Node host. On Cloudflare Workers the filesystem is ephemeral — for a durable beta you should later move insights/rate-limits to **D1** or **KV**. Rate limits still apply in-process / local file when available.
+**Windows note:** OpenNext needs symlink support. Enable **Developer Mode** in Windows Settings, or deploy via GitHub Actions (Ubuntu).
+
+**Note:** The default file-based `data/` store is fine for a single long-lived Node host. On Cloudflare Workers the filesystem is ephemeral — for a durable beta you should later move insights/rate-limits to **D1** or **KV**. Rate limits still apply when the store is available.
 
 Optional Worker vars (set in `wrangler.jsonc` or dashboard):
 
@@ -97,6 +104,12 @@ BETA_MAX_ANALYZES_PER_IP_PER_DAY=3
 BETA_MAX_ANALYZES_GLOBAL_PER_DAY=40
 XAI_EXTRACT_MODEL=grok-4-1-fast-non-reasoning
 ```
+
+### GitHub Actions deploy
+
+1. Create a Cloudflare API token (Workers Edit)  
+2. Add repo secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`  
+3. Push to `main` — workflow runs `npm run deploy`  
 
 ## License
 
