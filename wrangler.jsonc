@@ -1,0 +1,21 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "tesla-service-insights",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-06-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "vars": {
+    "XAI_MODEL": "grok-4.5",
+    "XAI_EXTRACT_MODEL": "grok-4-1-fast-non-reasoning",
+    "BETA_MAX_ANALYZES_PER_IP_PER_DAY": "3",
+    "BETA_MAX_ANALYZES_GLOBAL_PER_DAY": "40",
+    "BETA_MAX_PUBLISHES_PER_IP_PER_DAY": "5"
+  },
+  "observability": {
+    "enabled": true
+  }
+}
