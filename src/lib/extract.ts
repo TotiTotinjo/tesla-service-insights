@@ -184,15 +184,20 @@ export async function extractFromText(
   return visits[0];
 }
 
+/**
+ * Extract text from a PDF buffer.
+ * Uses `unpdf` (pdf.js serverless) so it works on Cloudflare Workers
+ * without DOM APIs like DOMMatrix that break `pdf-parse`.
+ */
 export async function extractTextFromPdf(buffer: Buffer): Promise<string> {
-  const { PDFParse } = await import("pdf-parse");
-  const parser = new PDFParse({ data: buffer });
-  try {
-    const result = await parser.getText();
-    return result.text || "";
-  } finally {
-    await parser.destroy().catch(() => undefined);
-  }
+  const { extractText, getDocumentProxy } = await import("unpdf");
+  const data = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+  const pdf = await getDocumentProxy(data);
+  const result = await extractText(pdf, { mergePages: true });
+  // unpdf may return string or string[] depending on version/options
+  if (typeof result.text === "string") return result.text;
+  if (Array.isArray(result.text)) return result.text.join("\n\n");
+  return String(result.text || "");
 }
 
 export type PatternInput = {

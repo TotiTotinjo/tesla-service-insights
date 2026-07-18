@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["pdf-parse", "pdfjs-dist"],
+  // unpdf works in Workers; keep pdfjs optional for local tooling
+  serverExternalPackages: ["unpdf", "pdfjs-dist"],
   // Prefer this project as root when a parent package-lock exists
   turbopack: {
     root: process.cwd(),
