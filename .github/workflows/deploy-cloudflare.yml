@@ -50,6 +50,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: open-next-bundle
+          include-hidden-files: true
           path: |
             .open-next
             wrangler.jsonc
