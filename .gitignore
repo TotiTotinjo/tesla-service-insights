@@ -43,6 +43,8 @@ yarn-error.log*
 .dev.vars
 .open-next
 .opennext
+_artifact
+out_*.html
 
 # typescript
 *.tsbuildinfo
