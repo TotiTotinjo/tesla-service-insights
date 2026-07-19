@@ -1,69 +1,76 @@
 /**
- * Drop routine consumables / wear items from community insights.
- * Keep mechanical components, electrical, software, body structure, HVAC systems, etc.
+ * Prefer Grok reasoning for scope; this is a narrow safety net.
+ *
+ * KEEP: system defects, electrical, software, unresolved NVH — even if techs
+ * tried rebalance/alignment/tires first and the problem remains.
+ *
+ * DROP only: pure consumable maintenance with no residual defect
+ * (e.g. "replaced worn tire", "new wipers", "cabin filter R&R only").
  */
 
 import type { ExtractedVisit } from "./types";
 
-/** Phrases that indicate pure consumable / maintenance wear (not a defect pattern). */
-const EXCLUDE_PATTERNS: RegExp[] = [
-  // Tires / wheels (wear & balance only — not suspension defects)
-  /\btire(s)?\b/i,
-  /\btyre(s)?\b/i,
-  /\btread\b/i,
-  /\bwheel\s*weight/i,
-  /\btire\s*pressure|\btpms\b/i,
-  /\brebalance|\bbalancing\b/i,
-  /\bpirelli|michelin|continental|bridgestone|goodyear|hankook|yokohama\b/i,
-  /\b\d{3}\/\d{2}\s*r?\d{2}\b/i, // 255/45R19 size
-
-  // Wipers / washers
-  /\bwiper(s)?\b/i,
-  /\bwasher\s*fluid\b/i,
-  /\bwindscreen\s*wiper|windshield\s*wiper/i,
-
-  // Filters (routine)
-  /\bcabin\s*(air\s*)?filter\b/i,
-  /\bhepa\s*filter\b/i,
-  /\bair\s*filter\b/i,
-
-  // Fluids / top-offs only
-  /\bcoolant\s*top\s*off\b/i,
-  /\bbrake\s*fluid\s*(flush|top)/i,
-  /\bwiper\s*fluid\b/i,
-
-  // Cosmetic / trim wear with no system failure
-  /\bpaint\s*protection\b/i,
-  /\bdetail(ing)?\b/i,
-  /\bcarpet\s*clean/i,
-  /\bseat\s*cover\b/i,
+/** Strong residual-problem language → always keep */
+const RESIDUAL_SYMPTOM: RegExp[] = [
+  /\bstill\b/i,
+  /\bcontinues?\b/i,
+  /\bongoing\b/i,
+  /\bpersists?\b/i,
+  /\bunable to (replicate|resolve|fix|find)\b/i,
+  /\bno\s*fix\b/i,
+  /\bnot\s*(fixed|resolved|corrected)\b/i,
+  /\bafter\s+(rebalance|balancing|alignment|rotation|tire\s*replace)/i,
+  /\bdespite\b/i,
+  /\bunknown\s*cause\b/i,
+  /\broot\s*cause\b/i,
+  /\bvibration\b/i,
+  /\bshake\b/i,
+  /\bshimmy\b/i,
+  /\bclunk\b/i,
+  /\brattle\b/i,
+  /\bsqueak\b/i,
+  /\bnoise\b/i,
+  /\bpull(ing)?\b/i,
+  /\bdrift\b/i,
 ];
 
-/**
- * Keywords that mean “real system issue” — if present with a weak tire mention,
- * we may still keep (e.g. suspension damage after tire blowout is rare; keep simple).
- * For pure tire lines, only tire words appear.
- */
-const KEEP_SYSTEM_HINTS: RegExp[] = [
+/** Real vehicle systems / defects we always want on the board */
+const SYSTEM_COMPONENT: RegExp[] = [
   /\bsuspension\b/i,
   /\bcontrol\s*arm\b/i,
   /\bbushing\b/i,
-  /\blink\b/i,
+  /\blateral\s*link|compliance\s*link\b/i,
   /\bdamper|shock|strut\b/i,
-  /\bbearing\b/i,
-  /\bmotor\b/i,
-  /\bbattery\b/i,
-  /\binverter\b/i,
-  /\bhvac|a\/c|cooling\s*fan\b/i,
-  /\bcharge\s*port\b/i,
-  /\bdoor\s*handle\b/i,
-  /\bwindow\s*regulator\b/i,
-  /\belectrical|wiring|harness|module|ecu|mcu\b/i,
-  /\bfirmware|software|update\b/i,
-  /\bdisplay|touchscreen\b/i,
-  /\bcamera|autopilot|fsd\b/i,
-  /\bsealing|water\s*leak|ingress\b/i,
-  /\bnoise|clunk|rattle|squeak|vibration\b/i, // NVH is in-scope even if tire related secondary
+  /\bbearing|hub\b/i,
+  /\bknuckle|ball\s*joint|tie\s*rod\b/i,
+  /\bmotor|drive\s*unit|inverter\b/i,
+  /\bbattery|12v|hvb|thermal\b/i,
+  /\bcharge\s*port|chargeport\b/i,
+  /\bhvac|compressor|cooling\s*fan|blower\b/i,
+  /\bdoor\s*handle|window\s*regulator|actuator\b/i,
+  /\belectrical|wiring|harness|module|ecu|mcu|pcb\b/i,
+  /\bfirmware|software|reflash|update\b/i,
+  /\bdisplay|touchscreen|screen\b/i,
+  /\bcamera|autopilot|fsd|radar\b/i,
+  /\bleak|ingress|seal\b/i,
+  /\bfalcon|liftgate|frunk|trunk\b/i,
+];
+
+/**
+ * Pure consumable maintenance — only exclude when the *whole* issue is this
+ * and there is no residual symptom / system component language.
+ */
+const PURE_CONSUMABLE: RegExp[] = [
+  // Tire as the only work: wear, replace tire, rotation, puncture plug — not "vibration after balance"
+  /\b(tire|tyre)\s*(wear|worn|replacement|replace|rotation|rotated)\b/i,
+  /\breplac(e|ed|ing)\s*(the\s*)?(front|rear|lh|rh|left|right)?\s*(tire|tyre)s?\b/i,
+  /\b(tire|tyre)s?\s*(due to|from)\s*wear\b/i,
+  /\blow\s*tread\b/i,
+  /\bpuncture|flat\s*tire|plug(ged)?\s*tire\b/i,
+  /\bwiper\s*blade|replac(e|ed)\s*wipers?\b/i,
+  /\bcabin\s*(air\s*)?filter|hepa\s*filter\b/i,
+  /\bwasher\s*fluid\s*(top|fill|refill)\b/i,
+  /\bdetail(ing)?\s*only\b/i,
 ];
 
 function blob(v: {
@@ -76,6 +83,7 @@ function blob(v: {
   issueSlug?: string;
   categories?: string[];
   partsReplaced?: string[];
+  fixStatus?: string;
 }): string {
   return [
     v.title,
@@ -85,6 +93,7 @@ function blob(v: {
     v.laborNotes,
     v.redactedNotes,
     v.issueSlug,
+    v.fixStatus,
     ...(v.categories || []),
     ...(v.partsReplaced || []),
   ]
@@ -94,7 +103,16 @@ function blob(v: {
 }
 
 /**
- * True if this issue is routine consumable wear we should not publish.
+ * True only for pure consumable maintenance with no residual defect story.
+ *
+ * Examples DROP:
+ *  - "Rear right tire replacement due to wear"
+ *  - "Cabin filter replaced"
+ *
+ * Examples KEEP (reasoning / residual problem):
+ *  - "Steering vibration remains after rebalance and alignment"
+ *  - "Highway shake — tires rebalanced, still present, cause unknown"
+ *  - "Control arm clunk" (even if alignment also performed)
  */
 export function isConsumableOrWearIssue(v: {
   title?: string;
@@ -106,28 +124,31 @@ export function isConsumableOrWearIssue(v: {
   issueSlug?: string;
   categories?: string[];
   partsReplaced?: string[];
+  fixStatus?: string;
 }): boolean {
   const text = blob(v);
   if (!text.trim()) return false;
 
-  const hitsExclude = EXCLUDE_PATTERNS.filter((re) => re.test(text));
-  if (hitsExclude.length === 0) return false;
+  // Unresolved / residual symptoms after maintenance → keep for community
+  if (RESIDUAL_SYMPTOM.some((re) => re.test(text))) {
+    return false;
+  }
 
-  // If it clearly involves a real system component, keep it
-  // (e.g. "wheel bearing noise" has "bearing" keep hint)
-  const hasSystem = KEEP_SYSTEM_HINTS.some((re) => re.test(text));
+  // Real system component language → keep
+  if (SYSTEM_COMPONENT.some((re) => re.test(text))) {
+    return false;
+  }
 
-  // Pure tire/tread/filter/wiper work: exclude patterns fire, no system keywords
-  // Special case: "tires" + only alignment/rebalance → still consumable maintenance
-  if (!hasSystem) return true;
+  // Open fix status with non-empty symptoms → keep (Grok thinks it's unresolved)
+  if (
+    (v.fixStatus === "no_fix_yet" || v.fixStatus === "partial") &&
+    (v.symptoms || "").trim().length > 10
+  ) {
+    return false;
+  }
 
-  // Tire size + replace tire language dominates → still exclude
-  const tireHeavy =
-    /\b(tire|tyre|tread)\b/i.test(text) &&
-    /\b(replac|wear|worn|tread|flat|puncture|rotation)\b/i.test(text) &&
-    !/\b(bearing|hub|suspension|control\s*arm|knuckle)\b/i.test(text);
-
-  return tireHeavy;
+  // Only drop clear pure-consumable jobs
+  return PURE_CONSUMABLE.some((re) => re.test(text));
 }
 
 export function filterComponentIssues<T extends ExtractedVisit>(
@@ -143,4 +164,4 @@ export function filterComponentIssues<T extends ExtractedVisit>(
 }
 
 export const CONSUMABLE_FILTER_NOTE =
-  "Routine wear items (tires, wipers, cabin filters, etc.) are excluded — we keep component, electrical, and system issues only.";
+  "Pure tire/wiper/filter jobs are excluded. Issues that continue after rebalance/alignment (e.g. vibration still present) are kept.";

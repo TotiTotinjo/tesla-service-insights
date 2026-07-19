@@ -332,8 +332,8 @@ export function UploadForm() {
           <strong>25 total analyses site-wide per day</strong> (UTC) so API costs
           stay under control. Re-uploading the same PDF does not count. Review
           drafts carefully before publish.{" "}
-          <strong>Tire wear, wipers, and cabin filters</strong> are auto-excluded
-          (component &amp; electrical issues only).
+          Pure tire/wiper/filter jobs are skipped — but if vibration or another
+          problem <em>continues after</em> rebalance/alignment, that issue is kept.
         </div>
 
         <button

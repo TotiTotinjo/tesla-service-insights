@@ -46,31 +46,34 @@ const VisitSchema = z.object({
  * return a SEPARATE object per discrete issue/visit so community can count owners per issue.
  * Keep strings short to control cost.
  */
-const SYSTEM = `Tesla multi-visit service invoice → JSON only. No markdown. No PII (names, phones, emails, VIN, addresses, RO/invoice #s, payment).
+const SYSTEM = `Tesla multi-visit service invoice analyst → JSON only. No markdown. No PII (names, phones, emails, VIN, addresses, RO/invoice #s, payment).
 
-CRITICAL: Split into SEPARATE issues — one object per distinct service concern/visit (e.g. control-arm noise is NOT the same as HVAC squeak). Max 15 issues. Same underlying issue type across visits → reuse the SAME issueSlug.
+REASON carefully about each line on the invoice before including or skipping it.
 
-SCOPE — INCLUDE only real vehicle systems:
-- Suspension, chassis, bearings, motors, battery, high/low voltage electrical, charge port, HVAC (fan/compressor/module), doors/handles/regulators, displays, cameras/Autopilot, leaks, software/module faults, structural noise/vibration from components.
+CRITICAL: Split into SEPARATE issues — one object per distinct service concern (e.g. control-arm noise ≠ HVAC squeak). Max 15. Same underlying problem type → same issueSlug.
 
-SCOPE — EXCLUDE (do not output these as issues):
-- Tire/tyre wear, tread, puncture, rotation, rebalance, TPMS pressure-only, wheel weights
-- Wiper blades, washer fluid
-- Cabin/air filters, routine fluid top-offs
-- Pure cosmetic detailing / cleaning
-These are consumables/maintenance, not component defects.
+INCLUDE (community-relevant defects / open problems):
+- Suspension, chassis, bearings, motors, battery, HV/LV electrical, charge port, HVAC systems, doors/handles/regulators, displays, cameras/Autopilot, leaks, software/module faults
+- Noise, vibration, shake, pull — ESPECIALLY when still present after maintenance
+- EXAMPLE KEEP: "Techs rebalanced tires and did alignment; highway steering vibration STILL happens; cause unknown" → this is an OPEN NVH issue (fixStatus: no_fix_yet). Mention rebalance only as attempted fix, do NOT drop the issue because rebalance was tried.
+- EXAMPLE KEEP: control arm replaced after clunk; or charge port actuator failed
 
-issueSlug: stable snake_case type key for community matching (e.g. front_control_arm_clunk, charge_port_door_fail, hvac_fan_squeak). Same problem type = same slug across owners.
+EXCLUDE only PURE consumable/maintenance with no residual defect:
+- Tire replaced solely for wear/tread/age; rotation; puncture plug; cabin filter; wiper blades; washer fluid top-off; detailing
+- EXAMPLE DROP: "Rear tire low tread — replaced tire. Road test OK." (nothing left wrong)
+- Do NOT exclude an issue just because the word rebalance, alignment, or tire appears if a symptom remains or a component failed
+
+issueSlug: stable snake_case for matching (e.g. highway_steering_vibration, front_control_arm_clunk). Same problem type = same slug across owners.
 
 fixStatus: fixed | no_fix_yet | partial | unknown
-- fixed = part replaced/repair confirmed
-- no_fix_yet = open, unable to replicate, no repair, monitor
-- partial = partial work or temporary
+- fixed = confirmed repair resolved it
+- no_fix_yet = still present, unable to replicate, monitor, unknown cause after attempts
+- partial = partial work
 - unknown = unclear
 
 Mileage: 0-10k|10-25k|25-50k|50-75k|75-100k|100k+|Unknown
 visitType: warranty|goodwill|customer_pay|unknown
-Keep symptoms/diagnosis/resolution ≤2 short sentences; redactedNotes ≤200 chars.
+Keep symptoms/diagnosis/resolution ≤2 short sentences; redactedNotes ≤200 chars. Put attempted steps (rebalance, alignment) in diagnosis/resolution when relevant.
 
 Schema:
 {"issues":[{"title":"","vehicleModel":"Model Y","modelYear":2024,"mileageBucket":"0-10k","categories":["suspension"],"symptoms":"","diagnosis":"","resolution":"","partsReplaced":[],"laborNotes":"","redactedNotes":"","region":null,"visitType":"warranty","confidence":0.9,"issueSlug":"front_control_arm_clunk","fixStatus":"fixed"}]}`;
