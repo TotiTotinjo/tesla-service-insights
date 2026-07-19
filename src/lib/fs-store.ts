@@ -1,7 +1,10 @@
 /**
- * Tiny JSON store that works on Node (disk) and Cloudflare Workers (memory).
- * On Workers the filesystem is not durable — memory resets on cold starts.
- * Good enough for early beta; migrate to D1/KV later.
+ * Durable JSON store:
+ * - Cloudflare Workers: Cloudflare KV (ROINSIGHTS_DATA binding)
+ * - Local Node: filesystem under data/
+ *
+ * Why insights vanished: without KV, Workers only had in-memory storage,
+ * which is wiped on cold starts / new isolates / refresh after idle.
  */
 import { promises as fs } from "fs";
 import path from "path";
@@ -25,8 +28,48 @@ export function dataFile(name: string): string {
   return path.join(process.cwd(), "data", name);
 }
 
+/** Map absolute/local path to a stable KV key */
+function kvKey(file: string): string {
+  const base = path.basename(file);
+  return `json:${base}`;
+}
+
+type KvLike = {
+  get: (key: string) => Promise<string | null>;
+  put: (key: string, value: string) => Promise<void>;
+};
+
+async function getKv(): Promise<KvLike | null> {
+  try {
+    const { getCloudflareContext } = await import("@opennextjs/cloudflare");
+    const ctx = await getCloudflareContext({ async: true });
+    const env = ctx?.env as { ROINSIGHTS_DATA?: KvLike } | undefined;
+    return env?.ROINSIGHTS_DATA ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function readJsonFile<T>(file: string, fallback: T): Promise<T> {
-  // Memory first (Workers + keeps consistency within isolate)
+  const key = kvKey(file);
+
+  // Prefer KV in production (durable across requests/isolates)
+  const kv = await getKv();
+  if (kv) {
+    try {
+      const raw = await kv.get(key);
+      if (raw != null) {
+        mem().set(file, raw);
+        return JSON.parse(raw) as T;
+      }
+      // cold empty KV — fall through to empty default (don't use stale mem from other key)
+      return fallback;
+    } catch (err) {
+      console.error("KV read failed", key, err);
+    }
+  }
+
+  // Local in-process cache (same isolate)
   const cached = mem().get(file);
   if (cached != null) {
     try {
@@ -36,6 +79,7 @@ export async function readJsonFile<T>(file: string, fallback: T): Promise<T> {
     }
   }
 
+  // Local filesystem (Node / npm run dev)
   try {
     const raw = await fs.readFile(file, "utf8");
     mem().set(file, raw);
@@ -48,6 +92,18 @@ export async function readJsonFile<T>(file: string, fallback: T): Promise<T> {
 export async function writeJsonFile(file: string, data: unknown): Promise<void> {
   const raw = JSON.stringify(data, null, 2);
   mem().set(file, raw);
+  const key = kvKey(file);
+
+  const kv = await getKv();
+  if (kv) {
+    try {
+      await kv.put(key, raw);
+      return;
+    } catch (err) {
+      console.error("KV write failed", key, err);
+      // fall through to disk attempt
+    }
+  }
 
   try {
     await fs.mkdir(path.dirname(file), { recursive: true });
@@ -55,6 +111,6 @@ export async function writeJsonFile(file: string, data: unknown): Promise<void> 
     await fs.writeFile(tmp, raw, "utf8");
     await fs.rename(tmp, file);
   } catch {
-    // Cloudflare / read-only FS — memory map is the store for this isolate
+    // Local FS unavailable — memory only for this isolate
   }
 }

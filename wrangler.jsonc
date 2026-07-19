@@ -19,6 +19,14 @@
       "service": "tesla-service-insights"
     }
   ],
+  // Durable storage so published insights survive refresh / cold starts
+  "kv_namespaces": [
+    {
+      "binding": "ROINSIGHTS_DATA",
+      "id": "63c8a6338a8a442181717509b0cab3c6",
+      "preview_id": "e48d4df217474050b0d88ee902ff9c2f"
+    }
+  ],
   "vars": {
     "XAI_MODEL": "grok-4.5",
     "XAI_EXTRACT_MODEL": "grok-4-1-fast-non-reasoning",
