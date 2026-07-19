@@ -89,10 +89,14 @@ Requires [Wrangler](https://developers.cloudflare.com/workers/wrangler/) login a
 ```bash
 npm install
 npx wrangler login
-# set secret (interactive — do not put the key in git)
+# set secrets (interactive — do not put values in git)
 npx wrangler secret put XAI_API_KEY
+# optional: private Discord channel for analyze / publish pings
+npx wrangler secret put DISCORD_WEBHOOK_URL
 npm run deploy
 ```
+
+**Discord alerts (optional):** Create a webhook in a **private** channel (Server Settings → Integrations → Webhooks). Alerts include issue counts, models, and short titles only — never PDFs, IPs, or raw invoice text.
 
 **Windows note:** OpenNext needs symlink support. Enable **Developer Mode** in Windows Settings, or deploy via GitHub Actions (Ubuntu).
 

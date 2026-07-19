@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { scheduleDiscordNotify } from "@/lib/discord";
 import { filterComponentIssues } from "@/lib/issue-filter";
 import { enrichVisit } from "@/lib/issue-group";
 import { recordMetric } from "@/lib/metrics";
@@ -132,6 +133,13 @@ export async function POST(req: NextRequest) {
       issueCount: insights.length,
       skippedGrok: true,
       inputChars: Number(meta.inputChars) || undefined,
+    });
+
+    scheduleDiscordNotify({
+      kind: "publish",
+      issueCount: insights.length,
+      models: insights.map((i) => i.vehicleModel),
+      titles: insights.map((i) => i.title),
     });
 
     return NextResponse.json({

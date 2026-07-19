@@ -7,6 +7,7 @@ import {
   toPdfBytes,
 } from "@/lib/extract";
 import { buildIssueGroups, enrichVisit } from "@/lib/issue-group";
+import { scheduleDiscordNotify } from "@/lib/discord";
 import { recordMetric } from "@/lib/metrics";
 import { mergePdfBuffers } from "@/lib/pdf-merge";
 import {
@@ -124,6 +125,11 @@ export async function POST(req: NextRequest) {
         issueCount: byPdf.length,
         skippedGrok: true,
       });
+      scheduleDiscordNotify({
+        kind: "duplicate",
+        issueCount: byPdf.length,
+        match: "pdf",
+      });
       return NextResponse.json({
         ok: true,
         duplicate: true,
@@ -165,6 +171,11 @@ export async function POST(req: NextRequest) {
         type: "upload_duplicate",
         issueCount: byText.length,
         skippedGrok: true,
+      });
+      scheduleDiscordNotify({
+        kind: "duplicate",
+        issueCount: byText.length,
+        match: "text",
       });
       return NextResponse.json({
         ok: true,
@@ -230,6 +241,15 @@ export async function POST(req: NextRequest) {
       issueCount: drafts.length,
       skippedGrok: false,
       inputChars: text.length,
+    });
+
+    scheduleDiscordNotify({
+      kind: "analyze",
+      issueCount: drafts.length,
+      models: drafts.map((d) => d.vehicleModel),
+      pageCount,
+      pdfCount: files.length,
+      titles: drafts.map((d) => d.title),
     });
 
     return NextResponse.json({

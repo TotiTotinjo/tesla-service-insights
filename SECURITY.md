@@ -24,3 +24,4 @@ If you find a vulnerability, please open a private report or contact the maintai
 2. Rotate keys if they ever appear in chat, logs, or git.
 3. Keep beta rate limits enabled in production.
 4. Set xAI billing alerts in the console.
+5. Optional: `DISCORD_WEBHOOK_URL` Worker secret for private analyze/publish pings (no PDFs, IPs, or invoice text).
