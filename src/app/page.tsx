@@ -1,16 +1,14 @@
 import Link from "next/link";
-import { stats } from "@/lib/store";
 
-export const dynamic = "force-dynamic";
+// Static marketing shell — avoids heavy SSR/stats on every home hit (CPU limits)
+export const dynamic = "force-static";
 
-export default async function HomePage() {
-  const s = await stats();
-
+export default function HomePage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-16">
       <section className="max-w-3xl">
         <p className="text-sm font-medium uppercase tracking-widest text-red-400">
-          Privacy-first · Grok-powered
+          Privacy-first · Grok-powered · Early beta
         </p>
         <h1 className="mt-3 text-4xl font-bold tracking-tight text-white sm:text-5xl">
           Turn Tesla service invoices into shared repair knowledge
@@ -19,8 +17,7 @@ export default async function HomePage() {
           Owners upload repair orders. We strip names, VINs, phones, and
           addresses in memory — originals are never stored — and keep only the
           technical story: what failed, how techs diagnosed it, and what fixed
-          it. Grok then finds patterns across owners so service can resolve
-          issues faster.
+          it. Issues are grouped across owners so recurring problems surface.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <Link
@@ -56,7 +53,7 @@ export default async function HomePage() {
           },
           {
             title: "3. Community match",
-            body: "Same issue across owners stacks · Fixed / No fix yet · vote for Service Bulletins.",
+            body: "Same issue across owners stacks · Fixed / No fix yet · bulletin votes after 1,000+ owners.",
           },
         ].map((card) => (
           <div
@@ -71,40 +68,12 @@ export default async function HomePage() {
         ))}
       </section>
 
-      <section className="mt-12 rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.06] to-transparent p-6 sm:p-8">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
-          Community stats
-        </h2>
-        <div className="mt-4 flex flex-wrap gap-8">
-          <div>
-            <div className="text-3xl font-bold text-white">{s.total}</div>
-            <div className="text-sm text-zinc-400">Visit reports</div>
-          </div>
-          <div>
-            <div className="text-3xl font-bold text-white">{s.issueCount}</div>
-            <div className="text-sm text-zinc-400">Issue types</div>
-          </div>
-          {Object.entries(s.byModel)
-            .slice(0, 4)
-            .map(([model, count]) => (
-              <div key={model}>
-                <div className="text-3xl font-bold text-white">{count}</div>
-                <div className="text-sm text-zinc-400">{model}</div>
-              </div>
-            ))}
-        </div>
-        {s.topCategories.length > 0 && (
-          <div className="mt-6 flex flex-wrap gap-2">
-            {s.topCategories.map((c) => (
-              <span
-                key={c.name}
-                className="rounded-full bg-white/10 px-3 py-1 text-xs text-zinc-300"
-              >
-                {c.name} · {c.count}
-              </span>
-            ))}
-          </div>
-        )}
+      <section className="mt-12 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-6 text-sm text-amber-100/90">
+        <strong className="text-amber-200">Beta note:</strong> Analysis uses
+        Grok and needs enough Worker CPU time. If you see Error 1102 during
+        upload, the Cloudflare account needs the{" "}
+        <strong>Workers Paid</strong> plan (~$5/mo) so PDF + AI work can finish.
+        Browsing insights is lighter.
       </section>
     </div>
   );

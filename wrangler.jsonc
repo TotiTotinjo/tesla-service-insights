@@ -34,6 +34,10 @@
     "BETA_MAX_ANALYZES_GLOBAL_PER_DAY": "25",
     "BETA_MAX_PUBLISHES_PER_IP_PER_DAY": "3"
   },
+  // Requires Workers Paid plan. Free plan hard-caps ~10ms CPU (Error 1102 on heavy work).
+  "limits": {
+    "cpu_ms": 60000
+  },
   "observability": {
     "enabled": true
   },

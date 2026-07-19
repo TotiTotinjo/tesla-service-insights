@@ -39,13 +39,18 @@ type KvLike = {
   put: (key: string, value: string) => Promise<void>;
 };
 
+let cachedKv: KvLike | null | undefined;
+
 async function getKv(): Promise<KvLike | null> {
+  if (cachedKv !== undefined) return cachedKv;
   try {
     const { getCloudflareContext } = await import("@opennextjs/cloudflare");
     const ctx = await getCloudflareContext({ async: true });
     const env = ctx?.env as { ROINSIGHTS_DATA?: KvLike } | undefined;
-    return env?.ROINSIGHTS_DATA ?? null;
+    cachedKv = env?.ROINSIGHTS_DATA ?? null;
+    return cachedKv;
   } catch {
+    cachedKv = null;
     return null;
   }
 }
