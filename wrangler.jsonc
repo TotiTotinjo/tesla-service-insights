@@ -34,6 +34,10 @@
     "BETA_MAX_ANALYZES_GLOBAL_PER_DAY": "25",
     "BETA_MAX_PUBLISHES_PER_IP_PER_DAY": "3"
   },
+  // Workers Paid: enough CPU for PDF extract + Grok analyze
+  "limits": {
+    "cpu_ms": 60000
+  },
   "observability": {
     "enabled": true
   },
