@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { filterComponentIssues } from "@/lib/issue-filter";
 import { enrichVisit } from "@/lib/issue-group";
 import { recordMetric } from "@/lib/metrics";
 import {
@@ -106,8 +107,20 @@ export async function POST(req: NextRequest) {
       visits.push(enrichVisit(v));
     }
 
+    // Safety net: never publish tire wear / consumables even if user re-enables them
+    const { kept } = filterComponentIssues(visits);
+    if (kept.length === 0) {
+      return NextResponse.json(
+        {
+          error:
+            "Nothing to publish after filtering routine wear items (tires, wipers, filters, etc.).",
+        },
+        { status: 400 }
+      );
+    }
+
     const insights = await saveVisitsFromUpload({
-      visits,
+      visits: kept,
       pdfHash: String(meta.pdfHash),
       contentHash: String(meta.contentHash),
       sourcePdfCount: Number(meta.sourcePdfCount) || 1,

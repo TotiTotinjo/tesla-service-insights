@@ -331,7 +331,9 @@ export function UploadForm() {
           max <strong>2 analyses per person per day</strong> and{" "}
           <strong>25 total analyses site-wide per day</strong> (UTC) so API costs
           stay under control. Re-uploading the same PDF does not count. Review
-          drafts carefully before publish — only you should decide what goes public.
+          drafts carefully before publish.{" "}
+          <strong>Tire wear, wipers, and cabin filters</strong> are auto-excluded
+          (component &amp; electrical issues only).
         </div>
 
         <button

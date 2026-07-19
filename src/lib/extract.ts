@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { compactInvoiceForModel } from "./content-hash";
+import { filterComponentIssues } from "./issue-filter";
 import { enrichVisit } from "./issue-group";
 import { getExtractModel, grokChat } from "./grok";
 import { redactPii, scrubInsightStrings, stillLooksLikePii } from "./redact";
@@ -48,6 +49,16 @@ const VisitSchema = z.object({
 const SYSTEM = `Tesla multi-visit service invoice → JSON only. No markdown. No PII (names, phones, emails, VIN, addresses, RO/invoice #s, payment).
 
 CRITICAL: Split into SEPARATE issues — one object per distinct service concern/visit (e.g. control-arm noise is NOT the same as HVAC squeak). Max 15 issues. Same underlying issue type across visits → reuse the SAME issueSlug.
+
+SCOPE — INCLUDE only real vehicle systems:
+- Suspension, chassis, bearings, motors, battery, high/low voltage electrical, charge port, HVAC (fan/compressor/module), doors/handles/regulators, displays, cameras/Autopilot, leaks, software/module faults, structural noise/vibration from components.
+
+SCOPE — EXCLUDE (do not output these as issues):
+- Tire/tyre wear, tread, puncture, rotation, rebalance, TPMS pressure-only, wheel weights
+- Wiper blades, washer fluid
+- Cabin/air filters, routine fluid top-offs
+- Pure cosmetic detailing / cleaning
+These are consumables/maintenance, not component defects.
 
 issueSlug: stable snake_case type key for community matching (e.g. front_control_arm_clunk, charge_port_door_fail, hvac_fan_squeak). Same problem type = same slug across owners.
 
@@ -172,8 +183,15 @@ export async function extractVisitsFromText(
     throw new Error("No issues extracted from invoice");
   }
 
-  // Cap to 15 to control storage/cost
-  return list.slice(0, 15).map((item) => finalizeVisit(item));
+  // Cap to 15, then drop consumables (tires, wipers, filters, etc.)
+  const finalized = list.slice(0, 15).map((item) => finalizeVisit(item));
+  const { kept } = filterComponentIssues(finalized);
+  if (kept.length === 0) {
+    throw new Error(
+      "No component/electrical issues found — only routine wear items (e.g. tires, wipers, filters) were on this invoice."
+    );
+  }
+  return kept;
 }
 
 /** @deprecated prefer extractVisitsFromText */
